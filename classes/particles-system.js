@@ -15,7 +15,15 @@ class ParticlesSystem {
         this.edge = edge;
     }
 
+    getInitialPosition() {
+        return createVector(0, 0);
+    }
+
     getPosition() {
+        return createVector(0, 0);
+    }
+
+    getInitialSpeed() {
         return createVector(0, 0);
     }
 
@@ -27,6 +35,15 @@ class ParticlesSystem {
         return null;
     }
 
+    addInitialParticle() {
+        const position = this.getInitialPosition();
+        const speed = this.getInitialSpeed();
+        const data = this.getData();
+        const particle = new Particle(position, speed, data);
+
+        this.particles.add(particle);
+    }
+
     addParticle() {
         const position = this.getPosition();
         const speed = this.getSpeed();
@@ -36,10 +53,10 @@ class ParticlesSystem {
         this.particles.add(particle);
     }
 
-    addParticles(count) {
+    addParticles(count, initial = false) {
         while (count > 0) {
             count--;
-            this.addParticle();
+            initial ? this.addInitialParticle() : this.addParticle();
         }
     }
 

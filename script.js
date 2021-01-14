@@ -19,20 +19,22 @@ const settings = {
     showFPS: true,
     rainEdgeMargin: 0,
     forces: {
-        gravity: 0.7,
+        gravity: 0.3,
         wind: 0.1,
     },
     rain: {
-        count: 90,
-        minLength: 80,
+        count: 300,
+        offset: 300,
+        minSpeed: 10,
+        maxSpeed: 20,
+        minLength: 10,
         maxLength: 120,
         width: 1,
     },
     splash: {
         count: 10,
-        speed: 5,
-        minSpeed: 4,
-        maxSpeed: 7,
+        minSpeed: 2,
+        maxSpeed: 6,
         minSize: 2,
         maxSize: 4,
     },
@@ -71,12 +73,14 @@ function generateGUISettings() {
     forcesFolder.open();
 
     const rainFolder = gui.addFolder('Rain');
-    rainFolder.add(settings.rain, 'count', 10, 200)
+    rainFolder.add(settings.rain, 'count', 10, 1000)
         .step(10)
         .onChange(count => rain.setCount(count));
     rainFolder.add(settings.rain, 'minLength', 1, 170).step(1);
     rainFolder.add(settings.rain, 'maxLength', 1, 170).step(1);
     rainFolder.add(settings.rain, 'width', 1, 5).step(1);
+    rainFolder.add(settings.rain, 'minSpeed', 0, 100).step(1);
+    rainFolder.add(settings.rain, 'maxSpeed', 0, 100).step(1);
     rainFolder.open();
 
     const splashFolder = gui.addFolder('Splash');
@@ -128,10 +132,21 @@ function createSplash(position) {
 
 function createRain() {
     const particlesSystem = new ParticlesSystem();
+    const rainOffset = settings.rain.offset;
+    particlesSystem.getInitialPosition = () => {
+        const x = randomInteger(-rainOffset, screenSize.width + rainOffset);
+        const y = randomInteger(0, screenSize.height);
+        return createVector(x, y);
+    };
     particlesSystem.getPosition = () => {
-        const x = randomInteger(0, screenSize.width);
+        const x = randomInteger(-rainOffset, screenSize.width + rainOffset);
         const y = randomInteger(-screenSize.height, 0);
         return createVector(x, y);
+    };
+    particlesSystem.getSpeed = () => {
+        const { minSpeed, maxSpeed } = settings.rain;
+        const speed = randomInteger(minSpeed, maxSpeed);
+        return createVector(0, speed);
     };
     particlesSystem.getData = () => {
         const { minLength, maxLength } = settings.rain;
@@ -142,7 +157,7 @@ function createRain() {
     particlesSystem.destroyCondition = (particle) => {
         return particle.position.y - particle.data.length > rainEdge.bottom;
     };
-    particlesSystem.setCount(settings.rain.count);
+    particlesSystem.addParticles(settings.rain.count, true);
     particlesSystem.setEdge(rainEdge);
 
     particlesSystem.addForce(forces.gravity);
