@@ -23,9 +23,9 @@ const settings = {
         wind: 0.1,
     },
     rain: {
-        count: 60,
-        minLength: 7,
-        maxLength: 100,
+        count: 90,
+        minLength: 80,
+        maxLength: 120,
         width: 1,
     },
     splash: {
@@ -33,11 +33,16 @@ const settings = {
         speed: 5,
         minSpeed: 4,
         maxSpeed: 7,
-        size: 4,
         minSize: 2,
         maxSize: 4,
     },
 };
+
+function randomInteger(min, max) {
+    const realMin = Math.min(min, max);
+    const realMax = Math.max(min, max);
+    return realMin + Math.floor(Math.random() * (realMax - realMin));
+}
 
 function updateScreenSize() {
     const bodyRect = document.body.getBoundingClientRect();
@@ -57,7 +62,7 @@ function updateScreenSize() {
 
 function generateGUISettings() {
     const forcesFolder = gui.addFolder('Forces');
-    forcesFolder.add(settings.forces, 'gravity', 0.1, 1.0)
+    forcesFolder.add(settings.forces, 'gravity', 0.1, 2.0)
         .step(0.1)
         .onChange(value => forces.gravity.value.y = value);
     forcesFolder.add(settings.forces, 'wind', -0.4, 0.4)
@@ -69,14 +74,17 @@ function generateGUISettings() {
     rainFolder.add(settings.rain, 'count', 10, 200)
         .step(10)
         .onChange(count => rain.setCount(count));
-    rainFolder.add(settings.rain, 'maxLength', 10, 200).step(10);
+    rainFolder.add(settings.rain, 'minLength', 1, 170).step(1);
+    rainFolder.add(settings.rain, 'maxLength', 1, 170).step(1);
     rainFolder.add(settings.rain, 'width', 1, 5).step(1);
     rainFolder.open();
 
     const splashFolder = gui.addFolder('Splash');
     splashFolder.add(settings.splash, 'count', 5, 30).step(5);
-    splashFolder.add(settings.splash, 'minSize', 1, 4).step(1);
-    splashFolder.add(settings.splash, 'maxSize', 4, 8).step(1);
+    splashFolder.add(settings.splash, 'minSize', 1, 10).step(1);
+    splashFolder.add(settings.splash, 'maxSize', 1, 10).step(1);
+    splashFolder.add(settings.splash, 'minSpeed', 1, 15).step(1);
+    splashFolder.add(settings.splash, 'maxSpeed', 1, 15).step(1);
     splashFolder.open();
 
     gui.add(settings, 'showFPS');
@@ -92,17 +100,19 @@ function createSplash(position) {
         return createVector(position.x, screenSize.height);
     };
     particlesSystem.getSpeed = () => {
+        const { minSpeed, maxSpeed } = settings.splash;
         const randomAngle = random(PI, TWO_PI);
-        const speedMagnitude = random(settings.splash.minSpeed, settings.splash.maxSpeed);
+        const speedMagnitude = randomInteger(minSpeed, maxSpeed);
         return p5.Vector.fromAngle(randomAngle, speedMagnitude);
     };
     particlesSystem.getData = () => {
+        const { minSize, maxSize } = settings.splash;
         return {
-            size: random(settings.splash.minSize, settings.splash.maxSize),
+            size: randomInteger(minSize, maxSize),
         };
     };
     particlesSystem.destroyCondition = (particle) => {
-        return particle.position.y > rainEdge.bottom;
+        return particle.position.y - particle.data.size > rainEdge.bottom;
     };
     particlesSystem.setCount(settings.splash.count);
 
@@ -119,10 +129,18 @@ function createSplash(position) {
 function createRain() {
     const particlesSystem = new ParticlesSystem();
     particlesSystem.getPosition = () => {
-        return createVector(random(screenSize.width), random(-screenSize.height, 0));
+        const x = randomInteger(0, screenSize.width);
+        const y = randomInteger(-screenSize.height, 0);
+        return createVector(x, y);
+    };
+    particlesSystem.getData = () => {
+        const { minLength, maxLength } = settings.rain;
+        return {
+            length: randomInteger(minLength, maxLength),
+        };
     };
     particlesSystem.destroyCondition = (particle) => {
-        return particle.position.y > rainEdge.bottom;
+        return particle.position.y - particle.data.length > rainEdge.bottom;
     };
     particlesSystem.setCount(settings.rain.count);
     particlesSystem.setEdge(rainEdge);
@@ -179,9 +197,8 @@ function drawRain() {
     strokeWeight(settings.rain.width);
     stroke(colors.rainDrop);
     rain.particles.forEach(particle => {
-        const { x, y } = particle.position;
-        const speed = particle.speed.copy().limit(settings.rain.maxLength);
-
+        const { position: { x, y }, data: { length } } = particle;
+        const speed = particle.speed.copy().setMag(length);
         line(x - speed.x, y - speed.y, x, y);
     });
 }
