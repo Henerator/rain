@@ -57,8 +57,12 @@ function updateScreenSize() {
 
 function generateGUISettings() {
     const forcesFolder = gui.addFolder('Forces');
-    forcesFolder.add(settings.forces, 'gravity', 0.1, 1.0).step(0.1);
-    forcesFolder.add(settings.forces, 'wind', -0.4, 0.4).step(0.1);
+    forcesFolder.add(settings.forces, 'gravity', 0.1, 1.0)
+        .step(0.1)
+        .onChange(value => forces.gravity.value.y = value);
+    forcesFolder.add(settings.forces, 'wind', -0.4, 0.4)
+        .step(0.1)
+        .onChange(value => forces.wind.value.x = value);
     forcesFolder.open();
 
     const rainFolder = gui.addFolder('Rain');
